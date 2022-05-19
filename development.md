@@ -19,3 +19,18 @@ String s = fileReader.readString();
 JSONArray jsonArray = JSONUtil.readJSONArray(fileReader.getFile(), Charset.defaultCharset());
 List<MenuTree> menuTreeList = JSONUtil.toList(jsonArray, MenuTree.class);
 ```
+### 获取文件路径
+```
+ public static String getProjectConfPath(String fileName) {
+        String filePath = "";
+        Properties props = System.getProperties();
+        String osName = props.getProperty("os.name");
+        if (StringUtils.containsIgnoreCase(osName, "windows")) {
+            filePath = System.getProperty("user.dir") + "\\conf" + "\\" + fileName;
+        } else {
+            filePath = System.getProperty("user.dir") + File.separator + "conf" + "/" + fileName;
+        }
+        log.info("【----------------------------》" + filePath + "】");
+        return filePath;
+    }
+```
