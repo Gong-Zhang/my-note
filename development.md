@@ -34,3 +34,54 @@ List<MenuTree> menuTreeList = JSONUtil.toList(jsonArray, MenuTree.class);
         return filePath;
     }
 ```
+### Springboot自定义拦截器实现登录拦截，并解决跨域问题
+```
+@Configuration
+public class CrosConfig implements WebMvcConfigurer {
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        // 允许所有前端站点调用
+        registry.addMapping("/**").allowedOrigins("*")
+                .allowCredentials(true).allowedMethods("OPTIONS", "GET", "POST", "DELETE", "PUT").maxAge(1728000);
+    }
+}
+
+@Slf4j
+@WebFilter(urlPatterns = {"/process/*","/user/*","/knowledge/*"})
+public class SessionFilter implements Filter {
+    @Autowired
+    private IAuthService authService;
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+        //
+        HttpServletResponse httpServletResponse = (HttpServletResponse) response;
+        httpServletResponse.setHeader("Access-Control-Allow-Origin", "*");  //允许跨域的源
+        httpServletResponse.setHeader("Access-Control-Allow-Methods", "*");  //跨域支持的方法
+        httpServletResponse.setHeader("Access-Control-Allow-Headers", "*");   //表示服务器允许请求的字段，可以写多个
+        httpServletResponse.setHeader("Access-Control-Max-Age", "false");  //下次预检的缓存时间
+        httpServletResponse.setHeader("Access-Control-Allow-Credentials", "10");  //是否允携带凭证（cookie），True 和 上面的 * 不能共存
+        if (authService.isExpire((HttpServletRequest) request,httpServletResponse)) {
+            httpServletResponse.setContentType("application/json");
+            Gson gson = new Gson();
+            String responseJson = gson.toJson(ResultUtils.LoginExpire());
+            try {
+                httpServletResponse.setCharacterEncoding("utf-8");
+                httpServletResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
+                httpServletResponse.getWriter().println(responseJson);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return;
+        }
+        chain.doFilter(request,response);
+    }
+}
+
+@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
+@ServletComponentScan(basePackages = {"com.h3c.ywrj.dzkf.itsm.filter"})
+public class ItsmApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ItsmApplication.class, args);
+    }
+}
+```
